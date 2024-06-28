@@ -1,53 +1,51 @@
-import { WeatherResponse } from "@/models";
-import { getTime } from "@/utils";
+import { ForecastResponse, WeatherResponse } from "@/models";
+import { getTime, set5day3HoursForecast } from "@/utils";
 import Image from "next/image";
+import DateCard from "../ui/DateCard";
+import CurrentCard from "../ui/CurrentCard";
+import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
+import { faArrowRight } from "@fortawesome/free-solid-svg-icons";
 
 const Weather = ({
-  data,
+  current,
+  forecast,
   errorMsg,
 }: {
-  data: WeatherResponse | null;
+  current: WeatherResponse | null;
+  forecast: ForecastResponse | null;
   errorMsg: string | null;
 }) => {
   let description = "";
   let [day, time] = getTime(0);
-  console.log(data)
-  if (data) {
-    description = data.weather[0].main.toLowerCase();
-    [day, time] = getTime(data.dt);
+  if (current) {
+    description = current.weather[0].main.toLowerCase();
+    [day, time] = getTime(current.dt);
   }
 
+  const currentCardData = {
+    temp: current?.main.temp || 0,
+    tempUnit: 'C',
+    status: current?.weather[0].main || '',
+    humidity: current?.main.humidity + ' %',
+    winds: (
+      <div className="flex gap-x-2">
+        <div style={{transform: `rotate(${current?.wind.deg}deg)`}}>
+          <FontAwesomeIcon icon={faArrowRight} />
+        </div> 
+        <div>{current?.wind.speed} m/s</div>
+      </div>
+    ),
+    visibility: (current?.visibility || 0)/1000 + ' km',
+    imageURL: `/weather/${description}.webp`
+  }
+
+  const dateCardData = forecast && set5day3HoursForecast(forecast.list ,'5-day Forecast (3 Hours)')
+
   return (
-    (data && (
-      <section className="flex flex-col justify-center mt-3 mb-5 padding-x">
-        <div className="relative">
-          <Image
-            src={`/weather/${description}.webp`}
-            width={1000}
-            height={1000}
-            alt="weather-img"
-            priority={true}
-            className="w-full h-[50vh] rounded-lg object-cover"
-          />
-          <div className="absolute bottom-0 p-3 flexBetween w-full sm:gap-0 gap-2">
-            <div className="flex flex-col gap-2 weather-Text-Bg relative z-10">
-              <h1 className=" sm:text-7xl text-3xl">{data?.main?.temp}°C</h1>
-              <h2 className=" sm:text-3xl text-2xl">
-                {data?.name}&nbsp;
-                <span className="sm:inline-block hidden">
-                  , {data?.sys?.country}
-                </span>
-              </h2>
-            </div>
-            <div className="flex flex-col gap-2 justify-end mt-auto h-1/2 weather-Text-Bg relative z-10">
-              <h3 className="weather-Subtext">{time}</h3>
-              <h3 className="weather-Subtext">
-                {data?.weather[0]?.main}&nbsp;
-                <span className="sm:inline-block hidden">, {day}</span>
-              </h3>
-            </div>
-          </div>
-        </div>
+    (current && (
+      <section className="flex flex-col gap-y-3">
+        <CurrentCard {...currentCardData} />
+        {dateCardData && <DateCard {...dateCardData} />}
       </section>
     )) ||
     (errorMsg && (
